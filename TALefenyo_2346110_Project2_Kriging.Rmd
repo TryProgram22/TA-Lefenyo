@@ -1,0 +1,145 @@
+---
+title: "Homework9_19Sept2023"
+author: "TALefenyo"
+date: "2023-09-19"
+output:
+  word_document: default
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+---
+title: "Homework_9_Variograms"
+author: "TALefenyo_Student2346110
+date: "2023-09-19"
+output:
+  html_document: default
+  word_document: default
+  pdf_document: default
+---
+
+options(repos =c(CRAN='https://cran.mirror.ac.za/'))
+
+```{r wd}
+setwd('C:/Users/Tshepi/Desktop/Wits/Wits/2023/2/Spatial Statistics/R_2023/LectureR2_18Sept2023')
+getwd()
+```
+
+```{r libs}
+library(geoR)
+library(fields)
+```
+
+```{r dataload}
+# Displaying the binned 100 observations used in green and the 367 in red
+library(geoR)
+points(sic.100, borders = sic.borders, col = 'green')
+points(sic.367, borders = sic.borders, col = 'red', add = TRUE)
+```
+
+```{r geodataplot}
+# Plot the data on the x and y axes, and depict the density distribution on a histogram
+library(geoR)
+plot.geodata(sic.100, bor = sic.borders)
+```
+
+```{r exprvariog}
+# Experimental variogram to illustrate the spatial variability or spatial dependence within a dataset
+library(geoR)
+library(fields)
+vario.b <- variog(sic.100, option = c('bin', 'cloud', 'smooth'), bin.cloud = TRUE)
+vario.c <- variog(sic.100, op = 'cloud')
+bplot.xy(vario.c$u, vario.c$v, breaks = vario.b$u, col = 'green', lwd = 2, cex = 0.1, outline = FALSE)
+```
+
+```{r exprvariogplot1and2}
+# Experimental variogram (first plot). It assists analysts in determining the range of spatial dependency (the distance at which points are no longer associated), the sill (the plateau value expressing overall variability in the dataset), and the nugget (a measure of spatial variability at extremely low distances). These factors are critical for choosing appropriate spatial models and generating predictions at unsampled sites.
+library(geoR)
+vario.ex <- variog(sic.100, bin.cloud = TRUE)
+plot(vario.ex, main = 'Experimental Variogram (First Plot)')
+
+# Experimental variogram (second plot). For model selection and geographical prediction, the second plot is critical. A strong match between the model and experimental variograms implies that the selected model properly describes the variable's spatial structure. Disparities between the two plots, on the other hand, may indicate that the chosen model needs to be adjusted or that the underlying spatial organisation is more complicated than the selected model can capture.
+library(geoR)
+vario4 <- variog(sic.100)
+plot(vario4, main = 'Experimental Variogram (Second Plot)')
+```
+
+```{r variogfit}
+# Variogram fitting of different models; spherical, exponential,matern and then overlaying the raw data with a spherical variogram
+library(geoR)
+vario.ex <- variog(sic.100, option = 'bin')
+vario.sphe <- variofit(vario.ex, cov.model = 'spher', ini.cov.pars = c(15000, 200))
+par(mfrow = c(2, 2), mar = c(3, 3, 1, 1), mgp = c(2, 1, 0))
+
+#creating a variogram plot and overlaying a spherical variogram model. These are the parameters of the spherical variogram model. The first parameter (15000) is the range, and the second parameter (100) is the sill.Nugget = 0;this parameter sets the nugget effect to 0, indicating no spatial variability at very short distances.Max.dist = 350,this specifies the maximum distance to consider when plotting the model.
+plot(vario.ex, main = 'Spherical')
+lines.variomodel(cov.model = 'sphe', cov.pars = c(15000, 100), nug = 0, max.dist = 350)
+
+#creating a variogram plot and overlaying an exponential variogram model. These are the parameters of the spherical variogram model. The first parameter (15000) is the range, and the second parameter (100) is the sill.Nugget = 0;this parameter sets the nugget effect to 0, indicating no spatial variability at very short distances.Max.dist = 350,this specifies the maximum distance to consider when plotting the model.
+plot(vario.ex, main = 'Exponential')
+lines.variomodel(cov.model = 'exp', cov.pars = c(15000, 100), nug = 0, max.dist = 350)
+
+#creating a variogram plot and overlaying an exponential variogram model with the nugget effect. These are the parameters of the spherical variogram model. The first parameter (15000) is the range, and the second parameter (100) is the sill.Nugget = 5000;this parameter sets the nugget effect to 5000, indicating no spatial variability at very short distances.Max.dist = 350,this specifies the maximum distance to consider when plotting the model.
+plot(vario.ex, main = 'Exponential with nugget effect')
+lines.variomodel(cov.model = 'exp', cov.pars = c(10000, 100), nug = 5000, max.dist = 350)
+
+#creating a variogram plot and overlaying a matern variogram model. These are the parameters of the spherical variogram model. The first parameter (15000) is the range, and the second parameter (100) is the sill.Nugget = 0;this parameter sets the nugget effect to 0, indicating no spatial variability at very short distances.Max.dist = 350,this specifies the maximum distance to consider when plotting the model, and a smoothness parameter (kappa) of 0.5.
+plot(vario.ex, main = 'Matern with nugget effect')
+lines.variomodel(cov.model = 'matern', cov.pars = c(10000, 100), nug = 0, max.dist = 350, kappa = 0.5)
+
+#creating the best fitting variogram plot and overlaying a spherical variogram model. These are the parameters of the spherical variogram model. The first parameter (15000) is the range, and the second parameter (50) is the sill.Nugget = 0;this parameter sets the nugget effect to 0, indicating no spatial variability at very short distances.Max.dist = 300,this specifies the maximum distance to consider when plotting the model.
+plot(vario.ex, main = 'Spherical variogram for raw data')
+lines.variomodel(cov.model = 'spher', cov.pars = c(15000, 50), nug = 0, max.dist = 300)
+```
+
+```{r krigingestandvars}
+# Kriging estimates and variances using the 100 observations
+library(geoR)
+
+# Create a prediction grid for spatial interpolation or prediction purposes.The grid is used in spatial analysis, interpolation, and prediction tasks where predictions need to be made at regularly spaced locations across a study area.
+pred.grid <- expand.grid(seq(0, 350, length.out = 51), seq(0, 220, length.out = 51))
+rgb.palette <- colorRampPalette(c('blue', 'lightblue', 'orange', 'red'), space = 'rgb')
+
+# These are the parameters for the covariance model. For the spherical model, the parameters,include the range (15000 units) and the nugget or sill (50 units).
+kc <- krige.conv(sic.100, loc = pred.grid, krige = krige.control(cov.model = 'spherical', cov.pars = c(15000, 50)))
+
+# Compute kriging estimations and the output illustration. Kriging estimation is a geostatistical method that predicts unknown values at specific locations based on the spatial correlation of observed data, considering both local and global variations.
+image(kc, loc = pred.grid, col = rgb.palette(20), xlab = 'Coord X', ylab = 'Coord Y',
+      borders = sic.borders, main = 'Estimation')
+
+# Perform kriging with the kriging variance
+kc <- krige.conv(sic.100, loc = pred.grid,
+                 krige = krige.control(cov.model = 'spherical', cov.pars = c(15000, 50)))
+
+# Compute kriging variance and the output illustration. Kriging variance quantifies the uncertainty of predicted values in geostatistics. It reflects the variability of estimates at unsampled locations, incorporating information from nearby observations and the spatial autocorrelation structure
+krige.var <- kc$krige.var
+
+image(kc, krige.var, loc = pred.grid, col = rgb.palette(20), xlab = 'Coord X', ylab = 'Coord Y',
+      borders = sic.borders, main = 'Kriging variance')
+```
+
+```{r krigingestobsd}
+# Kriging for estimated or observed values. Kriging interpolates spatial data by estimating values at unsampled locations based on observed data. It optimally combines local information and considers spatial autocorrelation, providing accurate predictions and uncertainty assessments.
+library(geoR)
+
+#Function to perform kriging on the 100 observations. It predicts values at the locations specified by 100 coordinates using a spherical covariance model with parameters range = 16000 and nugget = 47
+kc1 <- krige.conv(sic.100, loc = sic.100$coords, krige = krige.control(cov.model = 'spherical', cov.pars = c(16000, 47)))
+
+#Function to perform kriging on the 100 observations. It predicts values at the locations of the other 367 coordinates using a spherical covariance model with parameters range = 16000 and nugget = 47
+kc2 <- krige.conv(sic.100, loc = sic.367$coords, krige = krige.control(cov.model = 'spherical', cov.pars = c(16000, 47)))
+
+#The x-axis represents observed values, the y-axis represents kriging estimates, and a red line signifies perfect agreement. The plot assesses the accuracy of kriging predictions for a control sample
+plot(sic.100$data, kc1$predict, xlab = 'Observed', ylab = 'Estimated', main = 'Control sample')
+abline(a = 0, b = 1, col = 'red')
+
+#The x-axis represents observed values, the y-axis represents kriging estimates, and a red line indicates perfect agreement between observed and estimated values. The plot assesses the accuracy of kriging predictions.
+plot(sic.367$data, kc2$predict, xlab = 'Observed', ylab = 'Estimated', main = 'Control')
+abline(a = 0, b = 1, col = 'red')
+```
+
